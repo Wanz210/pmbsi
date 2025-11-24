@@ -3,96 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Keuangan - PMB</title>
+    <title>Laporan Keuangan - Manajemen Kampus</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <style>
-        /* CSS Umum untuk Web View */
-        .badge-lunas { background-color: #007bff; color: white; }
-        .badge-belum { background-color: #dc3545; color: white; }
-        .badge-valid { background-color: #28a745; color: white; }
-        .badge-warning { background-color: #ffc107; color: #333; }
-
-        /* Media Print: Menyembunyikan elemen non-data dan merapikan layout */
         @media print {
-            .navbar, .col-md-3, .aksi-web {
-                display: none !important; /* Sembunyikan Nav dan Sidebar */
-            }
-            .col-md-9 {
-                width: 100% !important; /* Konten full-width */
-                padding: 0 15px;
-                margin-top: -30px; /* Geser ke atas */
-                flex: none;
-            }
-            .report-header {
-                display: block !important;
-                text-align: center;
-                margin-bottom: 20px;
-            }
-            .card {
-                border: none;
-                box-shadow: none;
-            }
-            /* Style tabel untuk cetak */
-            table {
-                font-size: 10pt;
-            }
-            .badge-lunas, .badge-belum, .badge-valid, .badge-warning {
-                background: none !important;
-                border: 1px solid #aaa;
-                color: black !important;
-                padding: 3px 6px;
-            }
-            .report-title {
-                margin-top: 15px;
-                margin-bottom: 15px;
-            }
+            .no-print { display: none !important; }
+            .card { border: none !important; shadow: none !important; }
         }
     </style>
 </head>
 <body class="bg-light">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-success mb-4 aksi-web">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 no-print">
         <div class="container">
-            <a class="navbar-brand" href="#">Panel Keuangan PMB</a>
+            <a class="navbar-brand" href="#">Manajemen Kampus PMB</a>
             <div class="d-flex">
-                <span class="navbar-text text-white me-3">Halo, Keuangan</span>
+                <span class="navbar-text text-white me-3">
+                    Halo, {{ Auth::user()->name ?? 'Manajemen' }}
+                </span>
                 <form action="{{ route('logout') }}" method="POST">
-                    @csrf <button class="btn btn-outline-light btn-sm">Logout</button>
+                    @csrf
+                    <button class="btn btn-outline-light btn-sm">Logout</button>
                 </form>
             </div>
         </div>
     </nav>
 
     <div class="container">
-        <header class="report-header" style="display:none;">
-            <h2>LAPORAN STATUS PEMBAYARAN PENDAFTAR</h2>
-            <h4>UNIVERSITAS MUSAMUS</h4>
-            <hr>
-        </header>
-
         <div class="row">
-            <div class="col-md-3 mb-4 aksi-web">
-                <div class="list-group">
-                    <a href="{{ route('keuangan.dashboard') }}" class="list-group-item list-group-item-action">Dashboard Ringkasan</a>
-                    <a href="{{ route('keuangan.validasi') }}" class="list-group-item list-group-item-action">Validasi Pembayaran</a>
-                    <a href="{{ route('keuangan.laporan') }}" class="list-group-item list-group-item-action active bg-success border-success text-white">Laporan Keuangan</a>
+            <div class="col-md-3 mb-4 no-print">
+                <div class="list-group shadow-sm">
+                    <a href="{{ route('manajemen.dashboard') }}" class="list-group-item list-group-item-action">
+                        Dashboard Ringkasan
+                    </a>
+                    <a href="{{ route('manajemen.validasi') }}" class="list-group-item list-group-item-action">
+                        Validasi Pembayaran
+                    </a>
+                    <a href="{{ route('manajemen.laporan.keuangan') }}" class="list-group-item list-group-item-action active bg-dark border-dark">
+                        Laporan Keuangan
+                    </a>
+                    <a href="{{ route('manajemen.laporan.pendaftar') }}" class="list-group-item list-group-item-action">
+                        Laporan Pendaftar
+                    </a>
+                    <a href="{{ route('manajemen.laporan.kelulusan') }}" class="list-group-item list-group-item-action">
+                        Laporan Kelulusan
+                    </a>
                 </div>
             </div>
 
             <div class="col-md-9">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-success text-white fw-bold report-title">Laporan Status Pembayaran Pendaftar</div>
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold">Laporan Status Pembayaran Pendaftar</h5>
+                        <button onclick="window.print()" class="btn btn-primary btn-sm no-print">
+                            Cetak Laporan (PDF)
+                        </button>
+                    </div>
                     <div class="card-body">
 
-                        <div class="d-flex justify-content-between mb-3 aksi-web">
-                            <h6 class="mt-2">Total Data: {{ $data_laporan->count() }}</h6>
-                            <button class="btn btn-sm btn-info text-white" onclick="window.print()">Cetak Laporan</button>
+                        <div class="mb-3">
+                            <strong>Total Data: {{ $data_laporan->count() }}</strong>
                         </div>
 
                         <div class="table-responsive">
-                            <table class="table table-bordered table-striped table-hover">
-                                <thead class="table-light">
+                            <table class="table table-bordered table-striped">
+                                <thead class="table-dark">
                                     <tr>
                                         <th>#</th>
                                         <th>Nama Pendaftar</th>
@@ -102,25 +77,35 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($data_laporan as $key => $data)
+                                    @forelse($data_laporan as $key => $data)
                                     <tr>
                                         <td>{{ $key + 1 }}</td>
-                                        <td>{{ $data->user->name ?? 'User Dihapus' }}</td>
+                                        <td>{{ $data->user->name ?? 'User Terhapus' }}</td>
                                         <td>{{ $data->asal_sekolah }}</td>
                                         <td>
-                                            <span class="badge {{ $data->status_bayar == 'lunas' ? 'badge-lunas' : 'badge-belum' }}">
-                                                {{ strtoupper($data->status_bayar) }}
-                                            </span>
+                                            @if($data->status_bayar == 'lunas')
+                                                <span class="badge bg-success">LUNAS</span>
+                                            @else
+                                                <span class="badge bg-danger">BELUM BAYAR</span>
+                                            @endif
                                         </td>
                                         <td>
-                                            <span class="badge {{ $data->status_berkas == 'valid' ? 'badge-valid' : 'badge-warning' }}">
-                                                {{ strtoupper($data->status_berkas) }}
-                                            </span>
+                                            <span class="badge bg-secondary">{{ strtoupper($data->status_berkas) }}</span>
                                         </td>
                                     </tr>
-                                    @endforeach
+                                    @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Belum ada data transaksi.</td>
+                                    </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
+                        </div>
+
+                        <div class="mt-5 text-end">
+                            <p>Merauke, {{ date('d F Y') }}</p>
+                            <br><br>
+                            <p class="fw-bold text-decoration-underline">Bagian Keuangan</p>
                         </div>
 
                     </div>
@@ -128,5 +113,7 @@
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

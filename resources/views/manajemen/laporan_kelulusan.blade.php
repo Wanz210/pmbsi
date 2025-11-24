@@ -3,72 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Kelulusan - Pimpinan</title>
+    <title>Laporan Kelulusan - Manajemen Kampus</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         @media print {
-            .navbar, .col-md-3, .btn-info { display: none !important; }
-            .col-md-9 { width: 100% !important; flex: none; margin-top: -30px; padding: 0 15px; }
-            .report-header { display: block !important; text-align: center; margin-bottom: 20px; }
-            .card { border: none; box-shadow: none; }
-            .badge { background: none !important; color: black !important; border: 1px solid #ccc; }
+            .no-print { display: none !important; }
+            .card { border: none !important; shadow: none !important; }
+            .badge { border: 1px solid #000000; color: #000000; }
         }
-        .report-header { display: none; }
     </style>
 </head>
 <body class="bg-light">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-danger mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 no-print">
         <div class="container">
-            <a class="navbar-brand" href="#">Panel Pimpinan PMB</a>
+            <a class="navbar-brand" href="#">Panel Laporan Eksekutif</a>
             <div class="d-flex">
-                <span class="navbar-text text-white me-3">Halo, Pimpinan</span>
+                <span class="navbar-text text-white me-3">
+                    Halo, {{ Auth::user()->name ?? 'Manajemen' }}
+                </span>
                 <form action="{{ route('logout') }}" method="POST">
-                    @csrf <button class="btn btn-outline-light btn-sm">Logout</button>
+                    @csrf
+                    <button class="btn btn-outline-light btn-sm">Logout</button>
                 </form>
             </div>
         </div>
     </nav>
 
     <div class="container">
-        <header class="report-header">
-            <h2>LAPORAN HASIL KEPUTUSAN KELULUSAN</h2>
-            <h4>PMB UNIVERSITAS MUSAMUS</h4>
-            <hr>
-        </header>
-
         <div class="row">
-            <div class="col-md-3 mb-4">
-                <div class="list-group">
-                    <a href="{{ route('pimpinan.dashboard') }}" class="list-group-item list-group-item-action">Dashboard Eksekutif</a>
-                    <a href="{{ route('pimpinan.laporan.pendaftar') }}" class="list-group-item list-group-item-action">Laporan Pendaftar</a>
-                    <a href="{{ route('pimpinan.laporan.kelulusan') }}" class="list-group-item list-group-item-action active bg-danger border-danger text-white">Laporan Kelulusan</a>
+            <div class="col-md-3 mb-4 no-print">
+                <div class="list-group shadow-sm">
+                    <a href="{{ route('manajemen.dashboard') }}" class="list-group-item list-group-item-action">
+                        Dashboard Ringkasan
+                    </a>
+                    <a href="{{ route('manajemen.validasi') }}" class="list-group-item list-group-item-action">
+                        Validasi Pembayaran
+                    </a>
+                    <a href="{{ route('manajemen.laporan.keuangan') }}" class="list-group-item list-group-item-action">
+                        Laporan Keuangan
+                    </a>
+                    <a href="{{ route('manajemen.laporan.pendaftar') }}" class="list-group-item list-group-item-action">
+                        Laporan Pendaftar
+                    </a>
+                    <a href="{{ route('manajemen.laporan.kelulusan') }}" class="list-group-item list-group-item-action active bg-dark border-dark">
+                        Laporan Kelulusan
+                    </a>
                 </div>
             </div>
 
             <div class="col-md-9">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-danger text-white fw-bold">Data Hasil Keputusan Kelulusan</div>
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold">Laporan Hasil Keputusan Kelulusan</h5>
+                        <button class="btn btn-sm btn-dark no-print" onclick="window.print()">
+                            Cetak Laporan (PDF)
+                        </button>
+                    </div>
                     <div class="card-body">
 
-                        <div class="d-flex justify-content-between mb-3">
-                            <h6 class="mt-2">Total Data (Sudah Diputuskan): {{ $data_kelulusan->count() }}</h6>
-                            <button class="btn btn-sm btn-info text-white" onclick="window.print()">Cetak Laporan</button>
+                        <div class="d-none d-print-block text-center mb-4">
+                            <h3>LAPORAN HASIL SELEKSI PMB</h3>
+                            <h5>UNIVERSITAS MUSAMUS</h5>
+                            <hr>
+                        </div>
+
+                        <div class="mb-3">
+                            <strong>Total Data Diputuskan: {{ $data_kelulusan->count() }}</strong>
                         </div>
 
                         <div class="table-responsive">
                             <table class="table table-bordered table-striped table-hover">
-                                <thead class="table-light">
+                                <thead class="table-dark">
                                     <tr>
                                         <th>#</th>
                                         <th>Nama Pendaftar</th>
                                         <th>Status Berkas</th>
                                         <th>Status Bayar</th>
-                                        <th>Status Kelulusan</th>
+                                        <th>Keputusan Lulus</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($data_kelulusan as $key => $data)
+                                    @forelse($data_kelulusan as $key => $data)
                                     <tr>
                                         <td>{{ $key + 1 }}</td>
                                         <td>{{ $data->user->name ?? 'User Dihapus' }}</td>
@@ -78,19 +94,33 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="badge {{ $data->status_bayar == 'lunas' ? 'bg-primary' : 'bg-danger' }}">
+                                            <span class="badge {{ $data->status_bayar == 'lunas' ? 'bg-primary' : 'bg-warning text-dark' }}">
                                                 {{ strtoupper($data->status_bayar) }}
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="badge {{ $data->status_lulus == 'lulus' ? 'bg-success' : 'bg-danger' }}">
-                                                {{ strtoupper($data->status_lulus) }}
-                                            </span>
+                                            @if($data->status_lulus == 'lulus')
+                                                <span class="badge bg-success">LULUS</span>
+                                            @elseif($data->status_lulus == 'tidak')
+                                                <span class="badge bg-danger">TIDAK LULUS</span>
+                                            @else
+                                                <span class="badge bg-secondary">PROSES</span>
+                                            @endif
                                         </td>
                                     </tr>
-                                    @endforeach
+                                    @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Belum ada data keputusan kelulusan.</td>
+                                    </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
+                        </div>
+
+                        <div class="d-none d-print-block mt-5 text-end">
+                            <p>Merauke, {{ date('d F Y') }}</p>
+                            <br><br><br>
+                            <p class="fw-bold text-decoration-underline">Rektor / Pimpinan</p>
                         </div>
 
                     </div>
@@ -98,5 +128,7 @@
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

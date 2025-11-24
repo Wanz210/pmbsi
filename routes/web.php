@@ -1,59 +1,50 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
-use Illuminate\Support\Facades\Route;
 
-// Halaman Depan & Login
-Route::get('/', [AuthController::class, 'showLogin'])->name('login');
+// 1. HALAMAN LOGIN & REGISTRASI (Akses Umum)
+Route::get('/', function () { return redirect()->route('login'); });
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'prosesLogin'])->name('login.proses');
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'prosesRegister'])->name('register.proses');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-Route::middleware(['auth'])->group(function () {
 
-    // 1. USER (Calon Maba)
-    Route::middleware(['role:user'])->prefix('maba')->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'userDashboard'])->name('user.dashboard');
-        Route::get('/formulir', [DashboardController::class, 'userForm'])->name('user.form');
-        Route::post('/formulir', [DashboardController::class, 'storeFormulir'])->name('user.form.store');
-        Route::get('/kartu-ujian', [DashboardController::class, 'userCetakKartu'])->name('user.kartu');
-        Route::get('/kelulusan', [DashboardController::class, 'userStatusLulus'])->name('user.kelulusan');
-    });
+// 2. GROUP USER / CALON MAHASISWA
+Route::middleware(['auth', 'role:user'])->prefix('maba')->name('user.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'userDashboard'])->name('dashboard'); // Dashboard Info & Jadwal
+    Route::get('/formulir', [DashboardController::class, 'userForm'])->name('formulir'); // Formulir Pendaftaran
+    Route::post('/formulir', [DashboardController::class, 'storeFormulir'])->name('formulir.store'); // Simpan Bio & Upload Berkas
+    Route::get('/cetak-kartu', [DashboardController::class, 'userCetakKartu'])->name('cetak'); // Cetak Kartu Ujian
+    Route::get('/status-kelulusan', [DashboardController::class, 'userStatusLulus'])->name('kelulusan'); // Status
+});
 
-    // 2. ADMIN
-    Route::middleware(['role:admin'])->prefix('admin')->group(function () {
-        Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
-        Route::get('/verifikasi', [DashboardController::class, 'adminVerifikasi'])->name('admin.verifikasi');
-        Route::post('/verifikasi/{id}', [DashboardController::class, 'prosesVerifikasi'])->name('admin.verifikasi.proses');
-        Route::get('/users', [DashboardController::class, 'adminUsers'])->name('admin.users');
-        Route::delete('/users/{id}', [DashboardController::class, 'destroyUser'])->name('admin.users.delete');
-        Route::get('/jadwal', [DashboardController::class, 'adminJadwal'])->name('admin.jadwal');
-        Route::post('/jadwal', [DashboardController::class, 'storeJadwal'])->name('admin.jadwal.store');
-        Route::get('/jadwal', [DashboardController::class, 'adminJadwal'])->name('admin.jadwal');
-        Route::delete('/jadwal/{id}', [DashboardController::class, 'destroyJadwal'])->name('admin.jadwal.delete');
-        Route::put('/jadwal/{id}', [DashboardController::class, 'updateJadwal'])->name('admin.jadwal.update');
-        Route::get('/kelulusan', [DashboardController::class, 'adminKelulusan'])->name('admin.kelulusan');
-        Route::post('/kelulusan/{id}', [DashboardController::class, 'prosesKelulusan'])->name('admin.kelulusan.proses');
-    });
 
-    // ==========================================================
-    // MANAJEMEN KAMPUS ROUTE GROUP (GABUNGAN KEUANGAN & PIMPINAN)
-    // ==========================================================
-    Route::middleware(['auth', 'role:keuangan,pimpinan,manajemen'])->prefix('manajemen')->name('manajemen.')->group(function () {
+// 3. GROUP ADMIN (Administrator)
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('dashboard'); // Dashboard (Statistik)
+    Route::get('/verifikasi', [DashboardController::class, 'adminVerifikasi'])->name('verifikasi'); // Verifikasi (Berkas)
+    Route::post('/verifikasi/{id}', [DashboardController::class, 'prosesVerifikasi'])->name('verifikasi.proses');
+    Route::get('/users', [DashboardController::class, 'adminUsers'])->name('users'); // Manajemen (User)
+    Route::delete('/users/{id}', [DashboardController::class, 'destroyUser'])->name('users.delete');
+    Route::get('/jadwal', [DashboardController::class, 'adminJadwal'])->name('jadwal'); // Pengaturan Jadwal Info
+    Route::post('/jadwal', [DashboardController::class, 'storeJadwal'])->name('jadwal.store');
+    Route::put('/jadwal/{id}', [DashboardController::class, 'updateJadwal'])->name('jadwal.update');
+    Route::delete('/jadwal/{id}', [DashboardController::class, 'destroyJadwal'])->name('jadwal.delete');
+    Route::get('/kelulusan', [DashboardController::class, 'adminKelulusan'])->name('kelulusan'); // Manajemen Kelulusan
+    Route::post('/kelulusan/{id}', [DashboardController::class, 'prosesKelulusan'])->name('kelulusan.proses');
+});
 
-        // DASHBOARD (Gabungan Ringkasan Keuangan dan Eksekutif)
-        Route::get('/dashboard', [DashboardController::class, 'manajemenDashboard'])->name('dashboard');
 
-        // FUNGSI KEUANGAN
-        Route::get('/validasi-pembayaran', [DashboardController::class, 'keuanganValidasi'])->name('validasi.pembayaran');
-        Route::post('/validasi-pembayaran/{id}', [DashboardController::class, 'prosesPembayaran'])->name('validasi.proses');
-        Route::get('/laporan-keuangan', [DashboardController::class, 'keuanganLaporan'])->name('laporan.keuangan');
-
-        // FUNGSI PIMPINAN (Laporan Eksekutif)
-        Route::get('/laporan-pendaftar', [DashboardController::class, 'pimpinanLaporanPendaftar'])->name('laporan.pendaftar');
-        Route::get('/laporan-kelulusan', [DashboardController::class, 'pimpinanLaporanKelulusan'])->name('laporan.kelulusan');
-
-    });
+// 4. GROUP MANAJEMEN KAMPUS (Gabungan Keuangan & Pimpinan)
+Route::middleware(['auth', 'role:manajemen'])->prefix('manajemen')->name('manajemen.')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'manajemenDashboard'])->name('dashboard'); // Dashboard Ringkasan
+    Route::get('/validasi-pembayaran', [DashboardController::class, 'manajemenValidasi'])->name('validasi'); // Validasi (Pembayaran)
+    Route::post('/validasi-pembayaran/{id}', [DashboardController::class, 'prosesPembayaran'])->name('validasi.proses');
+    Route::get('/laporan-keuangan', [DashboardController::class, 'manajemenLaporanKeuangan'])->name('laporan.keuangan'); // Laporan (Keuangan)
+    Route::get('/laporan-pendaftar', [DashboardController::class, 'manajemenLaporanPendaftar'])->name('laporan.pendaftar'); // Laporan (Pendaftar)
+    Route::get('/laporan-kelulusan', [DashboardController::class, 'manajemenLaporanKelulusan'])->name('laporan.kelulusan'); // Laporan (Kelulusan)
 });

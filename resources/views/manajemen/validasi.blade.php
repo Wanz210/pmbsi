@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Validasi Pembayaran - Keuangan</title>
+    <title>Validasi Pembayaran - Manajemen Kampus</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-success mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
         <div class="container">
-            <a class="navbar-brand" href="#">Panel Keuangan PMB</a>
+            <a class="navbar-brand" href="#">Manajemen Kampus PMB</a>
             <div class="d-flex">
-                <span class="navbar-text text-white me-3">Halo, Keuangan</span>
+                <span class="navbar-text text-white me-3">Halo, {{ Auth::user()->name ?? 'Manajemen' }}</span>
                 <form action="{{ route('logout') }}" method="POST">
-                    @csrf <button class="btn btn-outline-light btn-sm">Logout</button>
+                    @csrf
+                    <button class="btn btn-outline-light btn-sm">Logout</button>
                 </form>
             </div>
         </div>
@@ -31,15 +32,17 @@
         <div class="row">
             <div class="col-md-3 mb-4">
                 <div class="list-group">
-                    <a href="{{ route('keuangan.dashboard') }}" class="list-group-item list-group-item-action">Dashboard Ringkasan</a>
-                    <a href="{{ route('keuangan.validasi') }}" class="list-group-item list-group-item-action active bg-success border-success text-white">Validasi Pembayaran</a>
-                    <a href="{{ route('keuangan.laporan') }}" class="list-group-item list-group-item-action">Laporan Keuangan</a>
+                    <a href="{{ route('manajemen.dashboard') }}" class="list-group-item list-group-item-action">Dashboard Ringkasan</a>
+                    <a href="{{ route('manajemen.validasi') }}" class="list-group-item list-group-item-action active bg-dark border-dark">Validasi Pembayaran</a>
+                    <a href="{{ route('manajemen.laporan.keuangan') }}" class="list-group-item list-group-item-action">Laporan Keuangan</a>
+                    <a href="{{ route('manajemen.laporan.pendaftar') }}" class="list-group-item list-group-item-action">Laporan Pendaftar</a>
+                    <a href="{{ route('manajemen.laporan.kelulusan') }}" class="list-group-item list-group-item-action">Laporan Kelulusan</a>
                 </div>
             </div>
 
             <div class="col-md-9">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-success text-white fw-bold">Daftar Pendaftar Belum Bayar</div>
+                    <div class="card-header bg-dark text-white fw-bold">Daftar Pendaftar Belum Bayar</div>
                     <div class="card-body">
 
                         @if($pendaftar_belum_bayar->isEmpty())
@@ -66,7 +69,7 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <form action="{{ route('keuangan.validasi.proses', $data->id) }}" method="POST">
+                                                <form action="{{ route('manajemen.validasi.proses', $data->id) }}" method="POST">
                                                     @csrf
                                                     <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Konfirmasi pembayaran LUNAS?')">
                                                         Konfirmasi Lunas

@@ -17,10 +17,13 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            // Role sesuai diagram: User, Admin, Keuangan, Pimpinan
-            $table->enum('role', ['admin', 'keuangan', 'pimpinan', 'user', 'manajemen']);
-            $table->timestamps();
 
+            // [PENTING] Kolom ini WAJIB ADA untuk fitur login Laravel & Factory
+            $table->rememberToken();
+
+            // Role custom Anda
+            $table->enum('role', ['admin', 'user', 'manajemen'])->default('user');
+            $table->timestamps();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
