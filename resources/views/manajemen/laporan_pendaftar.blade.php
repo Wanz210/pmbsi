@@ -3,62 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Pendaftar - Pimpinan</title>
+    <title>Laporan Pendaftar - Manajemen Kampus</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         @media print {
-            .navbar, .col-md-3, .btn-info { display: none !important; }
-            .col-md-9 { width: 100% !important; flex: none; margin-top: -30px; padding: 0 15px; }
-            .report-header { display: block !important; text-align: center; margin-bottom: 20px; }
-            .card { border: none; box-shadow: none; }
-            .badge { background: none !important; color: black !important; border: 1px solid #ccc; }
+            .no-print { display: none !important; }
+            .card { border: none !important; shadow: none !important; }
+            .badge { border: 1px solid #000; color: #000; }
         }
-        .report-header { display: none; }
     </style>
 </head>
 <body class="bg-light">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-danger mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 no-print">
         <div class="container">
-            <a class="navbar-brand" href="#">Panel Pimpinan PMB</a>
+            <a class="navbar-brand" href="#">Panel Laporan Eksekutif</a>
             <div class="d-flex">
-                <span class="navbar-text text-white me-3">Halo, Pimpinan</span>
+                <span class="navbar-text text-white me-3">
+                    Halo, {{ Auth::user()->name ?? 'Manajemen' }}
+                </span>
                 <form action="{{ route('logout') }}" method="POST">
-                    @csrf <button class="btn btn-outline-light btn-sm">Logout</button>
+                    @csrf
+                    <button class="btn btn-outline-light btn-sm">Logout</button>
                 </form>
             </div>
         </div>
     </nav>
 
     <div class="container">
-        <header class="report-header">
-            <h2>LAPORAN DATA SELURUH PENDAFTAR</h2>
-            <h4>PMB UNIVERSITAS MUSAMUS</h4>
-            <hr>
-        </header>
-
         <div class="row">
-            <div class="col-md-3 mb-4">
-                <div class="list-group">
-                    <a href="{{ route('pimpinan.dashboard') }}" class="list-group-item list-group-item-action">Dashboard Eksekutif</a>
-                    <a href="{{ route('pimpinan.laporan.pendaftar') }}" class="list-group-item list-group-item-action active bg-danger border-danger text-white">Laporan Pendaftar</a>
-                    <a href="{{ route('pimpinan.laporan.kelulusan') }}" class="list-group-item list-group-item-action">Laporan Kelulusan</a>
+            <div class="col-md-3 mb-4 no-print">
+                <div class="list-group shadow-sm">
+                    <a href="{{ route('manajemen.dashboard') }}" class="list-group-item list-group-item-action">
+                        Dashboard Ringkasan
+                    </a>
+                    <a href="{{ route('manajemen.validasi') }}" class="list-group-item list-group-item-action">
+                        Validasi Pembayaran
+                    </a>
+                    <a href="{{ route('manajemen.laporan.keuangan') }}" class="list-group-item list-group-item-action">
+                        Laporan Keuangan
+                    </a>
+                    <a href="{{ route('manajemen.laporan.pendaftar') }}" class="list-group-item list-group-item-action active bg-dark border-dark">
+                        Laporan Pendaftar
+                    </a>
+                    <a href="{{ route('manajemen.laporan.kelulusan') }}" class="list-group-item list-group-item-action">
+                        Laporan Kelulusan
+                    </a>
                 </div>
             </div>
 
             <div class="col-md-9">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-danger text-white fw-bold">Data Seluruh Calon Mahasiswa</div>
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold">Data Seluruh Calon Mahasiswa</h5>
+                        <button class="btn btn-sm btn-dark no-print" onclick="window.print()">
+                            Cetak Laporan (PDF)
+                        </button>
+                    </div>
                     <div class="card-body">
 
-                        <div class="d-flex justify-content-between mb-3">
-                            <h6 class="mt-2">Total Data: {{ $data_pendaftar->count() }}</h6>
-                            <button class="btn btn-sm btn-info text-white" onclick="window.print()">Cetak Laporan</button>
+                        <div class="d-none d-print-block text-center mb-4">
+                            <h3>LAPORAN DATA PENDAFTAR MASUK</h3>
+                            <h5>PMB UNIVERSITAS MUSAMUS</h5>
+                            <hr>
+                        </div>
+
+                        <div class="mb-3">
+                            <strong>Total Pendaftar Terdaftar: {{ $data_pendaftar->count() }}</strong>
                         </div>
 
                         <div class="table-responsive">
                             <table class="table table-bordered table-striped table-hover">
-                                <thead class="table-light">
+                                <thead class="table-dark">
                                     <tr>
                                         <th>#</th>
                                         <th>Nama Pendaftar</th>
@@ -69,7 +85,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($data_pendaftar as $key => $data)
+                                    @forelse($data_pendaftar as $key => $data)
                                     <tr>
                                         <td>{{ $key + 1 }}</td>
                                         <td>{{ $data->user->name ?? 'User Dihapus' }}</td>
@@ -90,9 +106,19 @@
                                             </span>
                                         </td>
                                     </tr>
-                                    @endforeach
+                                    @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">Belum ada data pendaftar.</td>
+                                    </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
+                        </div>
+
+                        <div class="d-none d-print-block mt-5 text-end">
+                            <p>Merauke, {{ date('d F Y') }}</p>
+                            <br><br><br>
+                            <p class="fw-bold text-decoration-underline">Panitia PMB</p>
                         </div>
 
                     </div>
@@ -100,5 +126,7 @@
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
