@@ -9,20 +9,25 @@ class Pendaftar extends Model
 {
     use HasFactory;
 
-    // INI YANG KURANG: Memberi izin kolom mana saja yang boleh diisi
     protected $fillable = [
         'user_id',
         'nisn',
         'asal_sekolah',
         'no_hp',
-        'path_foto',
-        'path_ijazah',
+        'tempat_lahir',
+        'tanggal_lahir',
+        'jenis_kelamin',
+        'nama_ayah',
+        'nama_ibu',
+        'alamat',
         'status_berkas',
         'status_bayar',
-        'status_lulus'
+        'status_lulus',
+        'path_foto',
+        'path_ijazah'
     ];
 
-    // Relasi ke User (Opsional tapi berguna nanti)
+    // Relasi ke User
     public function user()
     {
         return $this->belongsTo(User::class);

@@ -18,11 +18,18 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
 
-            // [PENTING] Kolom ini WAJIB ADA untuk fitur login Laravel & Factory
-            $table->rememberToken();
+            // --- [PERUBAHAN UNTUK PMB] ---
 
-            // Role custom Anda
-            $table->enum('role', ['admin', 'user', 'manajemen'])->default('user');
+            // 1. Role menggunakan string agar fleksibel (admin, user, keuangan, pimpinan)
+            $table->string('role')->default('user');
+
+            // 2. Status untuk verifikasi akun (active/pending)
+            // Default 'pending' agar pendaftar baru harus diverifikasi admin dulu
+            $table->string('status')->default('pending');
+
+            // -----------------------------
+
+            $table->rememberToken();
             $table->timestamps();
         });
 
