@@ -2,23 +2,43 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder; // Baris ini penting agar Laravel tau ini adalah Seeder
-use App\Models\User;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
-class AkunSeeder extends Seeder // Ini pembungkus Class yang hilang tadi
+class AkunSeeder extends Seeder // Ubah nama kelas jika Anda menggunakan file AkunSeeder.php
 {
     public function run(): void
     {
-        $roles = ['admin', 'manajemen', 'user'];
+        // Password default
+        $defaultPassword = Hash::make('12345678');
 
-        foreach ($roles as $role) {
-            User::create([
-                'name' => strtoupper($role) . ' SI',
-                'email' => $role . '@pmb.com',
-                'password' => Hash::make('12345678'), // Password sama semua
-                'role' => $role
-            ]);
-        }
+        // 1. Akun ADMIN
+        User::create([
+            'name' => 'Administrator',
+            'email' => 'admin@pmb.com',
+            'password' => $defaultPassword,
+            'role' => 'admin',
+            'status' => 'active' // Akun sistem harus aktif
+        ]);
+
+        // 2. Akun MANAJEMEN KAMPUS (Gabungan Keuangan & Pimpinan)
+        User::create([
+            'name' => 'Manajemen Kampus',
+            'email' => 'manajemen@pmb.com', // Gunakan manajemen@pmb.com agar konsisten dengan AuthController
+            'password' => $defaultPassword,
+            'role' => 'manajemen',
+            'status' => 'active' // Akun sistem harus aktif
+        ]);
+
+        // 3. Akun USER (Contoh Calon Mahasiswa)
+        User::create([
+            'name' => 'User Default',
+            'email' => 'user@pmb.com',
+            'password' => $defaultPassword,
+            'role' => 'user',
+            'status' => 'pending' // User baru harus menunggu verifikasi
+        ]);
     }
 }

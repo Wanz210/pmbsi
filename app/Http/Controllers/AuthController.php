@@ -3,63 +3,111 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash; // [PERBAIKAN] TAMBAHKAN INI
 use App\Models\User;
+use App\Models\Pendaftar;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
-    public function showLogin() { return view('login'); }
+    public function showLogin() {
+        return view('login');
+    }
 
     public function prosesLogin(Request $request) {
-        if (Auth::attempt($request->only('email', 'password'))) {
-            $request->session()->regenerate(); // Penting untuk keamanan session
+        $credentials = $request->only('email', 'password');
 
-            $role = Auth::user()->role;
+        // 1. Cek Login
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
 
-            if($role == 'admin') return redirect()->route('admin.dashboard');
-            if($role == 'keuangan' || $role == 'pimpinan' || $role == 'manajemen') {
+            // 2. Cek Status Akun (Wajib Active untuk login)
+            if ($user->status !== 'active') {
+                Auth::logout();
+                // Pesan ini hanya akan muncul jika Admin lupa mengaktifkan akun sistem (yang seharusnya tidak terjadi)
+                return back()->withErrors(['email' => 'Akun Anda belum aktif. Silakan hubungi Admin.']);
+            }
+
+            // 3. Redirection Sesuai Role
+            $role = $user->role;
+
+            if($role == 'admin') {
+                return redirect()->route('admin.dashboard');
+            }
+
+            // Peran Pimpinan dan Keuangan DIGABUNGKAN menjadi MANAJEMEN
+            if($role == 'manajemen') {
                 return redirect()->route('manajemen.dashboard');
             }
 
-            return redirect()->route('user.dashboard');
+            // Role user biasa (maba)
+            if($role == 'user') {
+                return redirect()->route('user.dashboard');
+            }
         }
-        return back()->withErrors(['email' => 'Akun tidak ditemukan']);
+
+        return back()->withErrors(['email' => 'Akun tidak ditemukan atau password salah']);
     }
 
-    public function logout(Request $request) {
+    public function logout() {
         Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
         return redirect('/');
     }
 
-    public function showRegister()
-    {
+    public function showRegister() {
         return view('register');
     }
 
-    public function prosesRegister(Request $request)
-    {
-        // 1. Validasi Input
+    public function prosesRegister(Request $request) {
+        // 1. Validasi Input Lengkap (Akun + Biodata)
         $request->validate([
-            'name' => 'required|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6|confirmed', // 'confirmed' berarti harus ada kolom password_confirmation
+            // Akun
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users',
+            'password' => 'required|min:6|confirmed',
+
+            // Biodata
+            'nisn' => 'required|numeric',
+            'asal_sekolah' => 'required|string',
+            'no_hp' => 'required|numeric',
+            'tempat_lahir' => 'required|string',
+            'tanggal_lahir' => 'required|date',
+            'jenis_kelamin' => 'required',
+            'nama_ayah' => 'required|string',
+            'nama_ibu' => 'required|string',
+            'alamat' => 'required|string',
         ]);
 
-        // 2. Simpan User Baru
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'user', // Otomatis mengatur role pendaftar baru sebagai 'user'
-        ]);
+        // Gunakan Database Transaction agar pembuatan User dan Pendaftar aman
+        DB::transaction(function () use ($request) {
 
-        // 3. Langsung Login setelah berhasil daftar
-        Auth::login($user);
+            // A. Buat Akun User
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 'user',
+                'status' => 'pending' // User baru harus menunggu verifikasi admin
+            ]);
 
-        // 4. Redirect ke dashboard user
-        return redirect()->route('user.dashboard')->with('success', 'Akun berhasil dibuat! Silakan lengkapi formulir pendaftaran.');
+            // B. Buat Data Biodata Pendaftar
+            Pendaftar::create([
+                'user_id' => $user->id,
+                'nisn' => $request->nisn,
+                'asal_sekolah' => $request->asal_sekolah,
+                'no_hp' => $request->no_hp,
+                'tempat_lahir' => $request->tempat_lahir,
+                'tanggal_lahir' => $request->tanggal_lahir,
+                'jenis_kelamin' => $request->jenis_kelamin,
+                'nama_ayah' => $request->nama_ayah,
+                'nama_ibu' => $request->nama_ibu,
+                'alamat' => $request->alamat,
+                'status_berkas' => 'pending'
+            ]);
+
+        });
+
+        return redirect()->route('login')->with('success', 'Registrasi berhasil! Akun Anda sedang menunggu verifikasi Admin.');
     }
 }

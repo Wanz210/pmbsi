@@ -11,8 +11,9 @@ use Illuminate\Support\Facades\Auth;
 class DashboardController extends Controller
 {
     // ==========================================================
-    // A. LOGIC USER (MABA)
+    // A. LOGIC USER (MAHASISWA BARU)
     // ==========================================================
+
     public function userDashboard() {
         $data_pendaftar = Pendaftar::where('user_id', Auth::id())->first();
         $jadwals = Jadwal::orderBy('tanggal_mulai', 'asc')->get();
@@ -20,30 +21,63 @@ class DashboardController extends Controller
     }
 
     public function userForm() {
+        // Cek apakah user sudah pernah isi formulir
         $cek = Pendaftar::where('user_id', Auth::id())->first();
-        if ($cek) return redirect()->route('user.dashboard')->with('warning', 'Anda sudah mengisi formulir.');
+        if ($cek) {
+            return redirect()->route('user.dashboard')->with('warning', 'Anda sudah mengisi formulir pendaftaran.');
+        }
         return view('user.formulir');
     }
 
     public function storeFormulir(Request $request) {
+        // 1. Validasi Input
         $request->validate([
-            'nisn' => 'required', 'asal_sekolah' => 'required', 'no_hp' => 'required',
-            'foto' => 'required|image|max:2048', 'ijazah' => 'required|mimes:pdf,jpg,jpeg|max:2048',
+            'nisn' => 'required|numeric',
+            'asal_sekolah' => 'required',
+            'tempat_lahir' => 'required',
+            'tanggal_lahir' => 'required|date',
+            'jenis_kelamin' => 'required',
+            'nama_ibu' => 'required',
+            'no_hp' => 'required',
+            'foto' => 'required|image|max:2048',
+            'ijazah' => 'required|mimes:pdf,jpg,png|max:2048',
         ]);
+
+        // 2. Upload File
         $pathFoto = $request->file('foto')->store('uploads', 'public');
         $pathIjazah = $request->file('ijazah')->store('uploads', 'public');
 
+        // 3. Simpan ke Database
+        // Pastikan Model Pendaftar sudah diupdate $fillable-nya
         Pendaftar::create([
-            'user_id' => Auth::id(), 'nisn' => $request->nisn, 'asal_sekolah' => $request->asal_sekolah,
-            'no_hp' => $request->no_hp, 'path_foto' => $pathFoto, 'path_ijazah' => $pathIjazah,
-            'status_berkas' => 'pending'
+            'user_id' => Auth::id(),
+            'nisn' => $request->nisn,
+            'asal_sekolah' => $request->asal_sekolah,
+            'tempat_lahir' => $request->tempat_lahir,
+            'tanggal_lahir' => $request->tanggal_lahir,
+            'jenis_kelamin' => $request->jenis_kelamin,
+            'agama' => $request->agama,
+            'no_hp' => $request->no_hp,
+            'alamat' => $request->alamat,
+            'nama_ayah' => $request->nama_ayah,
+            'nama_ibu' => $request->nama_ibu,
+            'pekerjaan_ayah' => $request->pekerjaan_ayah,
+            'pekerjaan_ibu' => $request->pekerjaan_ibu,
+            'path_foto' => $pathFoto,
+            'path_ijazah' => $pathIjazah,
+            'status_berkas' => 'pending',
         ]);
-        return redirect()->route('user.dashboard')->with('success', 'Pendaftaran berhasil dikirim!');
+
+        return redirect()->route('user.dashboard')->with('success', 'Formulir berhasil dikirim!');
     }
 
     public function userCetakKartu() {
         $pendaftar = Pendaftar::where('user_id', Auth::id())->first();
-        if (!$pendaftar) return redirect()->route('user.dashboard');
+
+        // Jika belum daftar, redirect kembali
+        if (!$pendaftar) {
+            return redirect()->route('user.dashboard')->with('warning', 'Silakan isi formulir terlebih dahulu.');
+        }
 
         $status = ($pendaftar->status_berkas == 'valid' && $pendaftar->status_bayar == 'lunas') ? 'siap' : 'belum_siap';
         return view('user.kartu', compact('pendaftar', 'status'));
@@ -57,6 +91,7 @@ class DashboardController extends Controller
     // ==========================================================
     // B. LOGIC ADMIN
     // ==========================================================
+
     public function adminDashboard() {
         $total_pendaftar = Pendaftar::count();
         $perlu_verifikasi = Pendaftar::where('status_berkas', 'pending')->count();
@@ -73,17 +108,33 @@ class DashboardController extends Controller
         $pendaftar = Pendaftar::findOrFail($id);
         if ($request->aksi == 'valid') $pendaftar->update(['status_berkas' => 'valid']);
         elseif ($request->aksi == 'tolak') $pendaftar->update(['status_berkas' => 'invalid']);
-        return redirect()->back()->with('success', 'Status berkas diperbarui.');
+        return redirect()->back()->with('success', 'Status berkas berhasil diperbarui.');
     }
 
     public function adminUsers() {
-        $users = User::latest()->get();
-        return view('admin.users', compact('users'));
+        // Ambil user yang SUDAH AKTIF
+        $users = user::where('status', 'active')->orderBy('created_at', 'desc')->get();
+        // Ambil user yang MENUNGGU VERIFIKASI
+        $users_pending = user::where('status', 'pending')->orderBy('created_at', 'desc')->get();
+
+        return view('admin.users', compact('users', 'users_pending'));
+    }
+
+    public function verifikasiUser($id, $status) {
+        $user = user::findOrFail($id);
+
+        if($status == 'terima'){
+            $user->update(['status' => 'active']);
+            return redirect()->back()->with('success', 'Akun diaktifkan! User bisa login.');
+        } else {
+            $user->delete();
+            return redirect()->back()->with('success', 'Akun ditolak dan data dihapus.');
+        }
     }
 
     public function destroyUser($id) {
         User::findOrFail($id)->delete();
-        return redirect()->back()->with('success', 'User dihapus.');
+        return redirect()->back()->with('success', 'User berhasil dihapus.');
     }
 
     public function adminJadwal() {
@@ -92,18 +143,18 @@ class DashboardController extends Controller
     }
 
     public function storeJadwal(Request $request) {
-        Jadwal::create($request->except('_token')); // Pastikan model Jadwal fillable aman
-        return redirect()->route('admin.jadwal')->with('success', 'Jadwal ditambah.');
+        Jadwal::create($request->except('_token'));
+        return redirect()->route('admin.jadwal')->with('success', 'Jadwal berhasil ditambah.');
     }
 
     public function updateJadwal(Request $request, $id) {
         Jadwal::findOrFail($id)->update($request->except('_token', '_method'));
-        return redirect()->route('admin.jadwal')->with('success', 'Jadwal diupdate.');
+        return redirect()->route('admin.jadwal')->with('success', 'Jadwal berhasil diupdate.');
     }
 
     public function destroyJadwal($id) {
         Jadwal::findOrFail($id)->delete();
-        return redirect()->back()->with('success', 'Jadwal dihapus.');
+        return redirect()->back()->with('success', 'Jadwal berhasil dihapus.');
     }
 
     public function adminKelulusan() {
@@ -113,13 +164,14 @@ class DashboardController extends Controller
 
     public function prosesKelulusan(Request $request, $id) {
         $pendaftar = Pendaftar::findOrFail($id);
-        $pendaftar->update(['status_lulus' => $request->aksi]); // 'lulus' atau 'tidak'
+        $pendaftar->update(['status_lulus' => $request->aksi]);
         return redirect()->route('admin.kelulusan')->with('success', 'Status kelulusan diperbarui.');
     }
 
     // ==========================================================
-    // C. LOGIC MANAJEMEN KAMPUS (Gabungan)
+    // C. LOGIC MANAJEMEN KAMPUS
     // ==========================================================
+
     public function manajemenDashboard() {
         $total_pendaftar = Pendaftar::count();
         $lulus_seleksi = Pendaftar::where('status_lulus', 'lulus')->count();
