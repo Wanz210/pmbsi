@@ -17,12 +17,14 @@ class Pendaftar extends Model
         'tempat_lahir',
         'tanggal_lahir',
         'jenis_kelamin',
-        'nama_ayah',
-        'nama_ibu',
-        'alamat',
+        'nama_ayah',  // <--- PASTIKAN INI ADA
+        'nama_ibu',   // <--- PASTIKAN INI ADA
+        'alamat',     // <--- PASTIKAN INI ADA
+        // Kolom status lainnya
         'status_berkas',
         'status_bayar',
         'status_lulus',
+        // Kolom untuk file (biarkan di sini agar tidak error meskipun null)
         'path_foto',
         'path_ijazah'
     ];
