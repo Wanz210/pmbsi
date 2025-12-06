@@ -17,6 +17,7 @@ class Pendaftar extends Model
         'tempat_lahir',
         'tanggal_lahir',
         'jenis_kelamin',
+        'jalur',
         'nama_ayah',  // <--- PASTIKAN INI ADA
         'nama_ibu',   // <--- PASTIKAN INI ADA
         'alamat',     // <--- PASTIKAN INI ADA

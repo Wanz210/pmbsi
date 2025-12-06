@@ -8,6 +8,7 @@ use App\Models\Pendaftar;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage; // Wajib di-import
 
 class AuthController extends Controller
 {
@@ -18,17 +19,14 @@ class AuthController extends Controller
     public function prosesLogin(Request $request) {
         $credentials = $request->only('email', 'password');
 
-        // 1. Cek Login
         if (Auth::attempt($credentials)) {
             $user = Auth::user();
 
-            // 2. Cek Status Akun (Wajib Active untuk login)
             if ($user->status !== 'active') {
                 Auth::logout();
                 return back()->withErrors(['email' => 'Akun Anda belum aktif. Silakan hubungi Admin.']);
             }
 
-            // 3. Redirection Sesuai Role
             $role = $user->role;
 
             if($role == 'admin') {
@@ -57,7 +55,8 @@ class AuthController extends Controller
     }
 
     public function prosesRegister(Request $request) {
-        // 1. Validasi Input Lengkap (Akun + Biodata)
+
+        // 1. Validasi Input Lengkap (Termasuk File)
         $request->validate([
             // Akun
             'name' => 'required|string|max:255',
@@ -71,13 +70,23 @@ class AuthController extends Controller
             'tempat_lahir' => 'required|string',
             'tanggal_lahir' => 'required|date',
             'jenis_kelamin' => 'required',
+            'jalur' => 'required|in:SNBP,SNBT,Mandiri,Lainnya',
             'nama_ayah' => 'required|string',
             'nama_ibu' => 'required|string',
             'alamat' => 'required|string',
+
+            // File Upload
+            'foto' => 'required|image|max:2048',
+            'ijazah' => 'required|mimes:pdf,jpg,jpeg,png|max:2048',
         ]);
 
-        // Gunakan Database Transaction agar pembuatan User dan Pendaftar aman
-        DB::transaction(function () use ($request) {
+        // 2. Upload File (Dilakukan sebelum transaction)
+        $pathFoto = $request->file('foto')->store('uploads/foto', 'public');
+        $pathIjazah = $request->file('ijazah')->store('uploads/ijazah', 'public');
+
+
+        // 3. Simpan Data ke DB dalam Transaction
+        DB::transaction(function () use ($request, $pathFoto, $pathIjazah) {
 
             // A. Buat Akun User
             $user = User::create([
@@ -97,9 +106,15 @@ class AuthController extends Controller
                 'tempat_lahir' => $request->tempat_lahir,
                 'tanggal_lahir' => $request->tanggal_lahir,
                 'jenis_kelamin' => $request->jenis_kelamin,
+                'jalur' => $request->jalur,
                 'nama_ayah' => $request->nama_ayah,
                 'nama_ibu' => $request->nama_ibu,
                 'alamat' => $request->alamat,
+
+                // Simpan Path File
+                'path_foto' => $pathFoto,
+                'path_ijazah' => $pathIjazah,
+
                 'status_berkas' => 'pending'
             ]);
 

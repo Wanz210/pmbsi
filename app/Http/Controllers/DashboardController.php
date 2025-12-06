@@ -41,6 +41,9 @@ class DashboardController extends Controller
             'no_hp' => 'required',
             'foto' => 'required|image|max:2048',
             'ijazah' => 'required|mimes:pdf,jpg,png|max:2048',
+            'nama_ayah' => 'required',
+            'alamat' => 'required',
+            'jalur' => 'required',
         ]);
 
         // 2. Upload File
@@ -48,7 +51,6 @@ class DashboardController extends Controller
         $pathIjazah = $request->file('ijazah')->store('uploads', 'public');
 
         // 3. Simpan ke Database
-        // Pastikan Model Pendaftar sudah diupdate $fillable-nya
         Pendaftar::create([
             'user_id' => Auth::id(),
             'nisn' => $request->nisn,
@@ -56,16 +58,14 @@ class DashboardController extends Controller
             'tempat_lahir' => $request->tempat_lahir,
             'tanggal_lahir' => $request->tanggal_lahir,
             'jenis_kelamin' => $request->jenis_kelamin,
-            'agama' => $request->agama,
             'no_hp' => $request->no_hp,
             'alamat' => $request->alamat,
             'nama_ayah' => $request->nama_ayah,
             'nama_ibu' => $request->nama_ibu,
-            'pekerjaan_ayah' => $request->pekerjaan_ayah,
-            'pekerjaan_ibu' => $request->pekerjaan_ibu,
             'path_foto' => $pathFoto,
             'path_ijazah' => $pathIjazah,
             'status_berkas' => 'pending',
+            'jalur' => $request->jalur,
         ]);
 
         return redirect()->route('user.dashboard')->with('success', 'Formulir berhasil dikirim!');
@@ -73,12 +73,9 @@ class DashboardController extends Controller
 
     public function userCetakKartu() {
         $pendaftar = Pendaftar::where('user_id', Auth::id())->first();
-
-        // Jika belum daftar, redirect kembali
         if (!$pendaftar) {
             return redirect()->route('user.dashboard')->with('warning', 'Silakan isi formulir terlebih dahulu.');
         }
-
         $status = ($pendaftar->status_berkas == 'valid' && $pendaftar->status_bayar == 'lunas') ? 'siap' : 'belum_siap';
         return view('user.kartu', compact('pendaftar', 'status'));
     }
@@ -96,7 +93,8 @@ class DashboardController extends Controller
         $total_pendaftar = Pendaftar::count();
         $perlu_verifikasi = Pendaftar::where('status_berkas', 'pending')->count();
         $lulus_seleksi = Pendaftar::where('status_lulus', 'lulus')->count();
-        return view('admin.dashboard', compact('total_pendaftar', 'perlu_verifikasi', 'lulus_seleksi'));
+        $siap_nilai = Pendaftar::where('status_berkas', 'valid')->where('status_bayar', 'lunas')->count();
+        return view('admin.dashboard', compact('total_pendaftar', 'perlu_verifikasi', 'lulus_seleksi', 'siap_nilai'));
     }
 
     public function adminVerifikasi() {
@@ -111,22 +109,33 @@ class DashboardController extends Controller
         return redirect()->back()->with('success', 'Status berkas berhasil diperbarui.');
     }
 
+    // FIX 1: MEMPERBAIKI QUERY UNTUK TABEL USER AKTIF
     public function adminUsers() {
-        // Ambil user yang SUDAH AKTIF
-        $users = user::where('status', 'active')->orderBy('created_at', 'desc')->get();
         // Ambil user yang MENUNGGU VERIFIKASI
-        $users_pending = user::where('status', 'pending')->orderBy('created_at', 'desc')->get();
+        $users_pending = User::where('status', 'pending')->orderBy('created_at', 'desc')->get();
+
+        // FIX: Ambil user yang SUDAH AKTIF (termasuk Admin/Manajemen)
+        $users = User::where('status', 'active')
+                     // Tambahkan role admin dan manajemen
+                     ->orWhere('role', 'admin')
+                     ->orWhere('role', 'manajemen')
+                     // Urutkan berdasarkan updated_at agar yang baru diaktifkan muncul di atas
+                     ->orderBy('updated_at', 'desc')
+                     ->get();
 
         return view('admin.users', compact('users', 'users_pending'));
     }
 
+    // FIX 2: MEMPERBAIKI LOGIKA STATUS
     public function verifikasiUser($id, $status) {
-        $user = user::findOrFail($id);
+        $user = User::findOrFail($id);
 
-        if($status == 'terima'){
+        // FIX: Ganti check dari 'terima' menjadi 'active'
+        if($status == 'active'){
             $user->update(['status' => 'active']);
+            // Penting: Memperbarui updated_at akan membantu sorting di adminUsers()
             return redirect()->back()->with('success', 'Akun diaktifkan! User bisa login.');
-        } else {
+        } else { // Jika status='tolak'
             $user->delete();
             return redirect()->back()->with('success', 'Akun ditolak dan data dihapus.');
         }
