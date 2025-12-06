@@ -25,7 +25,6 @@ class AuthController extends Controller
             // 2. Cek Status Akun (Wajib Active untuk login)
             if ($user->status !== 'active') {
                 Auth::logout();
-                // Pesan ini hanya akan muncul jika Admin lupa mengaktifkan akun sistem (yang seharusnya tidak terjadi)
                 return back()->withErrors(['email' => 'Akun Anda belum aktif. Silakan hubungi Admin.']);
             }
 
@@ -36,12 +35,10 @@ class AuthController extends Controller
                 return redirect()->route('admin.dashboard');
             }
 
-            // Peran Pimpinan dan Keuangan DIGABUNGKAN menjadi MANAJEMEN
             if($role == 'manajemen') {
                 return redirect()->route('manajemen.dashboard');
             }
 
-            // Role user biasa (maba)
             if($role == 'user') {
                 return redirect()->route('user.dashboard');
             }
@@ -88,7 +85,7 @@ class AuthController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'role' => 'user',
-                'status' => 'pending' // User baru harus menunggu verifikasi admin
+                'status' => 'pending'
             ]);
 
             // B. Buat Data Biodata Pendaftar
