@@ -220,16 +220,37 @@
                             <i class="fas fa-calendar-alt me-2"></i> Jadwal Penting PMB
                         </div>
                         <ul class="list-group list-group-flush">
+                            <li class="list-group-item bg-light d-none d-md-block">
+                                <div class="row fw-bold text-muted small text-uppercase">
+                                    <div class="col-md-3">Kegiatan</div>
+                                    <div class="col-md-5">Deskripsi</div>
+                                    <div class="col-md-4 text-end">Tanggal Pelaksanaan</div>
+                                </div>
+                            </li>
+
                             @if(isset($jadwals) && $jadwals->count() > 0)
                                 @foreach($jadwals as $j)
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>{{ $j->judul }}</span>
-                                    <span class="badge bg-primary rounded-pill py-2 px-3">
-                                        {{ \Carbon\Carbon::parse($j->tanggal_mulai)->format('d M Y') }}
-                                        @if($j->tanggal_selesai)
-                                            - {{ \Carbon\Carbon::parse($j->tanggal_selesai)->format('d M Y') }}
-                                        @endif
-                                    </span>
+                                <li class="list-group-item">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3 mb-2 mb-md-0">
+                                            <span class="fw-bold text-primary-dark">{{ $j->judul }}</span>
+                                        </div>
+
+                                        <div class="col-md-5 mb-2 mb-md-0">
+                                            <small class="text-muted">
+                                                {!! nl2br(e($j->deskripsi)) !!}
+                                            </small>
+                                        </div>
+
+                                        <div class="col-md-4 text-md-end">
+                                            <span class="badge bg-primary rounded-pill py-2 px-3">
+                                                {{ \Carbon\Carbon::parse($j->tanggal_mulai)->format('d M Y') }}
+                                                @if($j->tanggal_selesai)
+                                                    - {{ \Carbon\Carbon::parse($j->tanggal_selesai)->format('d M Y') }}
+                                                @endif
+                                            </span>
+                                        </div>
+                                    </div>
                                 </li>
                                 @endforeach
                             @else
